@@ -1,7 +1,9 @@
 README.md
 pyproject.toml
 pycodeadvisor/__init__.py
+pycodeadvisor/ai_worker.py
 pycodeadvisor/cli.py
+pycodeadvisor/config.py
 pycodeadvisor/models.py
 pycodeadvisor/syntax_analyzer.py
 pycodeadvisor.egg-info/PKG-INFO
@@ -10,3 +12,8 @@ pycodeadvisor.egg-info/dependency_links.txt
 pycodeadvisor.egg-info/entry_points.txt
 pycodeadvisor.egg-info/requires.txt
 pycodeadvisor.egg-info/top_level.txt
+pycodeadvisor/providers/__init__.py
+pycodeadvisor/providers/base_provider_interface.py
+pycodeadvisor/providers/claude_provider.py
+pycodeadvisor/providers/gemini_provider.py
+pycodeadvisor/providers/openAI_provider.py
