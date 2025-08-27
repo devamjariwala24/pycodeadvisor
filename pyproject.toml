@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pycodeadvisor"
+version = "0.1.0"
+description = "AI-powered Python code analysis and debugging assistant"
+authors = [
+    {name = "Devam Jariwala", email = "devamjariwala24@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "click>=8.0.0",
+    "requests>=2.25.0",
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "black",
+    "flake8",
+]
+
+[project.scripts]
+pycodeadvisor = "pycodeadvisor.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["pycodeadvisor*"]

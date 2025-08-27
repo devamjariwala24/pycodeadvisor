@@ -1,0 +1,12 @@
+README.md
+pyproject.toml
+pycodeadvisor/__init__.py
+pycodeadvisor/cli.py
+pycodeadvisor/models.py
+pycodeadvisor/syntax_analyzer.py
+pycodeadvisor.egg-info/PKG-INFO
+pycodeadvisor.egg-info/SOURCES.txt
+pycodeadvisor.egg-info/dependency_links.txt
+pycodeadvisor.egg-info/entry_points.txt
+pycodeadvisor.egg-info/requires.txt
+pycodeadvisor.egg-info/top_level.txt
