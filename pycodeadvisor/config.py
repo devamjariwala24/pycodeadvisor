@@ -2,7 +2,6 @@ import os
 import yaml
 from pathlib import Path
 from typing import Dict, Any, Optional, List
-import tempfile
 
 
 class Config:
@@ -69,8 +68,12 @@ class Config:
             # Initialize with empty config
             self.config_data = self._get_default_config()
         
+        
+        self.load_dotenv()
         # Override with environment variables
         self._load_environment_variables()
+        # Load from .env file if it exists
+        # self.load_dotenv()
     
     def _load_yaml_file(self, file_path: Path) -> Dict[str, Any]:
         """Load YAML configuration file"""
@@ -121,6 +124,30 @@ class Config:
             env_value = os.environ.get(env_var)
             if env_value:
                 self._set_nested_config(config_path, env_value)
+    
+    def load_dotenv(self):
+        """Load variables from .env file"""
+        env_path = Path.cwd() / ".env"
+        
+        if env_path.exists():
+            with env_path.open('r') as f:
+                for line in f:
+                    line = line.strip()
+                    if '=' in line and not line.startswith('#'):
+                        key, value = line.split('=', 1)
+                        os.environ[key] = value
+
+    def create_dotenv_template(self) -> Path:
+        """Create .env file with API keys template"""
+        env_path = Path.cwd() / ".env"
+        
+        with env_path.open('w') as f:
+            f.write("# PyCodeAdvisor API Keys\n")
+            f.write("GOOGLE_API_KEY=your-google-key-here\n")
+            f.write("OPENAI_API_KEY=your-openai-key-here\n") 
+            f.write("ANTHROPIC_API_KEY=your-anthropic-key-here\n")
+        
+        return env_path
     
     def _set_nested_config(self, path: List[str], value: Any):
         """Set nested configuration value"""
@@ -265,7 +292,7 @@ class Config:
         default_provider = self.config_data.get('default_provider', 'openai')
         
         return f"""PyCodeAdvisor Configuration:
-  Config file: {self.config_file or 'Not found'}
-  Default provider: {default_provider}
-  Configured providers: {', '.join(configured_providers) or 'None'}
-  Analysis max files: {self.get_analysis_config().get('max_files', 'Not set')}"""
+            Config file: {self.config_file or 'Not found'}
+            Default provider: {default_provider}
+            Configured providers: {', '.join(configured_providers) or 'None'}
+            Analysis max files: {self.get_analysis_config().get('max_files', 'Not set')}"""

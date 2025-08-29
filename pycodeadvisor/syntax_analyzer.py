@@ -68,11 +68,13 @@ class SyntaxAnalyzer:
         
     def analyze_file(self, file_path: Path) -> List[ErrorEvent]:
         """Parse single file and return any errors found"""
-
         errors = []
+        
         try:
+            # Read file content
             with file_path.open('r', encoding='utf-8') as f:
                 file_content = f.read()
+                lines = file_content.splitlines()
                 
         except (UnicodeDecodeError, PermissionError, OSError) as e:
             error = ErrorEvent(
@@ -84,31 +86,72 @@ class SyntaxAnalyzer:
             return [error]
         
         try:
-            # Step 2: Parse with AST
+            # Try AST parsing first
             ast.parse(file_content, filename=str(file_path))
-            # If we get here, no syntax errors found
-            return []
+            return []  # No syntax errors found
             
-        except SyntaxError as syntax_error:
-
-            error_line = syntax_error.lineno or 1
-            error_message = syntax_error.msg or "Syntax error"
-            
-
-            context, context_start = self.extract_code_context(file_path, error_line)
-
-            error = ErrorEvent(
-                file_path=str(file_path),
-                line_number=error_line,
-                error_type="SyntaxError",
-                message=error_message,
-                code_context=context,
-                context_start_line=context_start
-            )
-            
-            errors.append(error)
+        except SyntaxError:
+            # AST parsing failed, use pattern-based detection
+            errors = self._detect_multiple_errors(file_path, lines)
             
         return errors
+
+    def _detect_multiple_errors(self, file_path: Path, lines: List[str]) -> List[ErrorEvent]:
+        """Detect multiple errors using pattern matching"""
+        errors = []
+        
+        for line_num, line in enumerate(lines, 1):
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+                
+            # Check for missing colons
+            if (line.startswith(('def ', 'class ', 'if ', 'elif ', 'else', 'for ', 'while ', 'try', 'except', 'finally')) 
+                and not line.endswith(':')):
+                error = self._create_pattern_error(file_path, line_num, "SyntaxError", 
+                                                "expected ':'", lines, line_num-1)
+                errors.append(error)
+            
+            # Check for unclosed parentheses/brackets
+            if '(' in line and line.count('(') > line.count(')'):
+                error = self._create_pattern_error(file_path, line_num, "SyntaxError", 
+                                                "'(' was never closed", lines, line_num-1)
+                errors.append(error)
+            
+            if '[' in line and line.count('[') > line.count(']'):
+                error = self._create_pattern_error(file_path, line_num, "SyntaxError", 
+                                                "'[' was never closed", lines, line_num-1)
+                errors.append(error)
+            
+            # Check for unclosed quotes
+            single_quotes = line.count("'") - line.count("\\'")
+            double_quotes = line.count('"') - line.count('\\"')
+            
+            if single_quotes % 2 != 0:
+                error = self._create_pattern_error(file_path, line_num, "SyntaxError", 
+                                                "unterminated string literal", lines, line_num-1)
+                errors.append(error)
+        
+        return errors
+
+    def _create_pattern_error(self, file_path: Path, line_number: int, error_type: str, 
+                            message: str, all_lines: List[str], error_index: int) -> ErrorEvent:
+        """Create ErrorEvent with context for pattern-detected errors"""
+        context_lines = 3
+        start_line = max(0, error_index - context_lines)
+        end_line = min(len(all_lines), error_index + context_lines + 1)
+        
+        context = all_lines[start_line:end_line]
+        context_start_line = start_line + 1
+        
+        return ErrorEvent(
+            file_path=str(file_path),
+            line_number=line_number,
+            error_type=error_type,
+            message=message,
+            code_context=context,
+            context_start_line=context_start_line
+        )
         
     def extract_code_context(self, file_path: Path, error_line: int, lines_before: int = 3, lines_after: int = 3) -> tuple:
         """Read file and extract lines around the error"""

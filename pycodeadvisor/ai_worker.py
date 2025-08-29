@@ -65,30 +65,14 @@ class AIWorker:
         return recommendation
     
     def _build_prompt(self, error_event: ErrorEvent) -> str:
-        """Create structured prompt for AI analysis"""
-        context_snippet = error_event.get_context_snippet()
-        
-        prompt = f"""Analyze this Python error and provide a helpful recommendation:
+        prompt = f"""Fix this Python error with one sentence each:
 
-        FILE: {error_event.file_path}
-        ERROR TYPE: {error_event.error_type}
-        ERROR MESSAGE: {error_event.message}
+        ERROR: {error_event.error_type} - {error_event.message}
         LINE: {error_event.line_number}
 
-        CODE CONTEXT:
-        {context_snippet}
-
-        Please provide your response in this exact format:
-
-        EXPLANATION:
-        [Explain what caused this error in simple terms]
-
-        SUGGESTED FIX:
-        [Provide specific steps to fix the error]
-
-        CONFIDENCE:
-        [Rate your confidence from 0.0 to 1.0]"""
-        
+        EXPLANATION: [What's wrong in one sentence]
+        SUGGESTED FIX: [How to fix it in one sentence]
+        CONFIDENCE: [0.0-1.0]"""
         return prompt
     
     def _parse_ai_response(self, response: str) -> Dict[str, Any]:
@@ -106,30 +90,37 @@ class AIWorker:
             
             if line.startswith("EXPLANATION:"):
                 current_section = "explanation"
+                # Extract content after colon on same line
+                content = line.replace("EXPLANATION:", "").strip()
+                if content:
+                    explanation = content
                 continue
             elif line.startswith("SUGGESTED FIX:"):
                 current_section = "suggested_fix"
+                # Extract content after colon on same line
+                content = line.replace("SUGGESTED FIX:", "").strip()
+                if content:
+                    suggested_fix = content
                 continue
             elif line.startswith("CONFIDENCE:"):
-                current_section = "confidence"
                 # Extract confidence value
                 try:
                     confidence_text = line.replace("CONFIDENCE:", "").strip()
                     confidence = float(confidence_text)
-                    confidence = max(0.0, min(1.0, confidence))  # Clamp to valid range
+                    confidence = max(0.0, min(1.0, confidence))
                 except (ValueError, IndexError):
                     confidence = 0.5
                 continue
             
-            # Add content to current section
+            # Add content to current section only if we're in a section
             if current_section == "explanation" and line:
-                explanation += line + " "
+                explanation += " " + line
             elif current_section == "suggested_fix" and line:
-                suggested_fix += line + " "
+                suggested_fix += " " + line
         
         return {
             'explanation': explanation.strip() or "Unable to analyze this error",
-            'suggested_fix': suggested_fix.strip() or "No specific fix suggested",
+            'suggested_fix': suggested_fix.strip() or "No specific fix suggested", 
             'confidence': confidence
         }
     
